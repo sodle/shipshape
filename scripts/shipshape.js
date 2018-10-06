@@ -2,7 +2,9 @@ import Sequelize, { Op } from 'sequelize';
 
 const sequelize = new Sequelize('shipshape', null, null, {
     dialect: 'sqlite',
-    storage: './shipshape.sqlite3'
+    storage: './shipshape.sqlite3',
+    operatorsAliases: Op,
+    logging: false
 });
 
 const getSquareIdx = (x, y) => y * 10 + x;
@@ -19,7 +21,9 @@ Player.prototype.getAllMatches = function () {
             {
                 model: Player,
                 where: {
-                    id: Sequelize.col('Player.id')
+                    id: {
+                        [Op.eq]: Sequelize.col('Player.id')
+                    }
                 }
             }
         ]
@@ -31,22 +35,35 @@ Player.prototype.getActiveMatch = function () {
             {
                 model: Player,
                 where: {
-                    id: Sequelize.col('Player.id')
+                    id: {
+                        [Op.eq]: Sequelize.col('Player.id')
+                    }
                 }
             }
         ],
         where: {
-            endTime: null
+            endTime: {
+                [Op.eq]: null
+            }
         }
     });
 };
+Player.prototype.getOrStartMatch = async function (opponentIfNew) {
+    let match = await this.getActiveMatch();
+    let created = match === null;
+    if (created)
+        match = await this.startMatch(opponentIfNew);
+    return [match, created];
+}
 Player.prototype.getMatchHistory = function () {
     return Match.findAll({
         include: [
             {
                 model: Player,
                 where: {
-                    id: Sequelize.col('Player.id')
+                    id: {
+                        [Op.eq]: Sequelize.col('Player.id')
+                    }
                 }
             }
         ],
@@ -101,12 +118,16 @@ Match.prototype.getPlayerShips = function(ai) {
             {
                 model: Match,
                 where: {
-                    id: Sequelize.col('Match.id')
+                    id: {
+                        [Op.eq]: Sequelize.col('Match.id')
+                    }
                 }
             }
         ],
         where: {
-            ai: ai
+            ai: {
+                [Op.eq]: ai
+            }
         }
     })
 };
