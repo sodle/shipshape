@@ -164,48 +164,45 @@ Match.prototype.checkShipUnplaced = function(name, length, ai) {
         });
     });
 };
-Match.prototype.checkShipOverlap = function(newShip) {
-    return new Promise((resolve, reject) => {
-        this.getPlayerShips(newShip.ai)
-            .then((ships) => {
-                for (let ship of ships)
-                    for (let square of ship.getSquares())
-                        for (let newSquare of newShip.getSquares())
-                            if (square === newSquare)
-                                reject(`Overlaps with ${ship.name} at ${square}`);
-                resolve();
-            });
-    });
+Match.prototype.checkShipOverlap = async function(newShip) {
+    let ships = await this.getPlayerShips(newShip.ai);
+    for (let ship of ships) {
+        for (let square of ship.getSquares()) {
+            let [x, y] = square;
+            for (let newSquare of newShip.getSquares()) {
+                let [newX, newY] = newSquare;
+                if (x === newX && y === newY) {
+                    throw new Error(`Overlaps with ${ship.name} at ${'ABCDEFGHIJ'[x]}${y + 1}!`);
+                }
+            }
+        }
+    }
 };
-Match.prototype.placeShip = function(name, length, x, y, vertical, ai) {
-    return new Promise((resolve, reject) => {
-        this.checkShipUnplaced(name, length, ai)
-            .then(() => {
-                if (x < 0 || y < 0 || x >= 10 || y >= 10)
-                    reject('Ship off board');
-                if (vertical)
-                    if (y + length > 10)
-                        reject('Ship off board');
-                else
-                    if (x + length > 10)
-                        reject('Ship off board');
-                let newShip = Ship.create({
-                    name: name,
-                    length: length,
-                    x: x,
-                    y: y,
-                    vertical: vertical,
-                    ai: ai,
-                    matchId: this.id
-                });
-                this.checkShipOverlap(newShip)
-                    .then(() => {
-                        newShip.save().then((ship) => resolve(ship)).catch((error) => reject(error));
-                    })
-                    .catch((error) => reject(error));
-            })
-            .catch((error) => reject(error));
+Match.prototype.placeShip = async function(name, length, x, y, vertical, ai) {
+    await this.checkShipUnplaced(name, length, ai);
+    if (x < 0 || y < 0 || x >= 10 || y >= 10) {
+        throw new Error('Ship off board');
+    }
+    if (vertical) {
+        if ((y + length) > 10) {
+            throw new Error('Ship off board');
+        }
+    } else {
+        if ((x + length) > 10) {
+            throw new Error('Ship off board');
+        }
+    }
+    let newShip = Ship.build({
+        name: name,
+        length: length,
+        x: x,
+        y: y,
+        vertical: vertical,
+        ai: ai,
+        matchId: this.id
     });
+    await this.checkShipOverlap(newShip);
+    return newShip.save();
 };
 Match.prototype.makeMove = function(x, y, ai) {
     let boardToCheck = (ai) ? this.aiBoard : this.humanBoard;
@@ -244,6 +241,9 @@ Match.prototype.checkWin = function(ai) {
 };
 
 const Ship = sequelize.define('ship', {
+    name: {
+        type: Sequelize.STRING
+    },
     x: {
         type: Sequelize.INTEGER
     },
