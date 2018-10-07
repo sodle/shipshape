@@ -1,11 +1,12 @@
 import { Player, Match, Ship, syncDb } from './scripts/shipshape';
-import { getSquareCoordinates, placeShipRandomly } from "./scripts/ai";
+import { getSquareCoordinates, placeShipRandomly, fry } from "./scripts/ai";
 import { Op } from 'sequelize';
 import clear from 'clear';
 import figlet from 'figlet';
 import inquirer from 'inquirer';
 
 const aiType = 'fry';
+const ai = fry;
 
 async function printMyShips(match) {
     let ocean = match.humanBoard.match(/.{1,10}/g);
@@ -134,24 +135,83 @@ async function runCLI() {
             }
         }
     }
+    clear();
+    if (await match.checkWin(false)) {
+        console.log('You win!');
+        return;
+    }
+    if (await match.checkWin(true)) {
+        console.log('The AI wins!');
+        return;
+    }
     while (true) {
-        clear();
         console.log('Enemy:');
-        printEnemyShips(match);
+        await printEnemyShips(match);
 
         console.log();
 
         console.log('You:');
-        printMyShips(match);
+        await printMyShips(match);
+
+        console.log('It is your turn.');
+
+        let success = false;
+        while (!success) {
+            let {x, y} = await inquirer.prompt([
+                {
+                    type: 'input',
+                    name: 'x',
+                    message: 'Column (A-J)',
+                    validate: i => i.length === 1 && 'ABCDEFGHIJabcdefghij'.includes(i)
+                },
+                {
+                    type: 'input',
+                    name: 'y',
+                    message: 'Row (1-10)',
+                    validate: i => parseInt(i) > 0 && parseInt(i) <= 10
+                }
+            ]);
+            x = 'ABCDEFGHIJ'.indexOf(x.toUpperCase());
+            y = parseInt(y) - 1;
+            try {
+                let hitShip = await match.makeMove(x, y, false);
+                clear();
+                if (hitShip !== null) {
+                    if (hitShip.checkSunk()) {
+                        console.log(`You sunk the AI's ${hitShip.name}!`);
+                    } else {
+                        console.log('Hit!');
+                    }
+                } else {
+                    console.log('Miss!');
+                }
+                success = true;
+            } catch (e) {
+                console.log(e);
+            }
+        }
+
         if (await match.checkWin(false)) {
             console.log('You win!');
             return;
-        } else if (await match.checkWin(true)) {
-            console.log('The AI wins!');
+        }
+
+        let [x, y] = ai(match.humanBoard);
+        let hitShip = await match.makeMove(x, y, true);
+        if (hitShip !== null) {
+            if (hitShip.checkSunk()) {
+                console.log(`The AI sunk your ${hitShip.name}!`);
+            } else {
+                console.log('AI hit!');
+            }
+        } else {
+            console.log('AI miss!');
+        }
+
+        if (await match.checkWin(true)) {
+            console.log('AI wins!');
             return;
         }
-        console.log('It is your turn.');
-        return;
     }
 }
 

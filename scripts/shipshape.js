@@ -129,7 +129,7 @@ Match.prototype.getPlayerShips = function(ai) {
                 [Op.eq]: ai
             }
         }
-    })
+    });
 };
 Match.prototype.getUnplacedShips = function(ai) {
     let ships = {
@@ -204,25 +204,28 @@ Match.prototype.placeShip = async function(name, length, x, y, vertical, ai) {
     await this.checkShipOverlap(newShip);
     return newShip.save();
 };
-Match.prototype.makeMove = function(x, y, ai) {
-    let boardToCheck = (ai) ? this.aiBoard : this.humanBoard;
+Match.prototype.makeMove = async function(x, y, ai) {
+    let boardToCheck = (ai) ? this.humanBoard : this.aiBoard;
     let squareToCheck = getSquareIdx(x, y);
-    return new Promise((resolve, reject) => {
-        if (boardToCheck[squareToCheck] === '.') {
-            for (let ship of this.getPlayerShips(!ai)) {
-                ship.checkHit(x, y).then((hit) => {
-                    boardToCheck[squareToCheck] = (hit) ? 'x' : 'o';
-                    if (ai)
-                        this.aiBoard = boardToCheck;
-                    else
-                        this.humanBoard = boardToCheck;
-                    this.save().then(() => resolve((hit) ? ship : null)).catch((error) => reject(error));
-                }).catch((error) => reject(error));
+    if (boardToCheck[squareToCheck] === '.') {
+        let hit = null;
+        for (let ship of await this.getPlayerShips(!ai)) {
+            if (await ship.checkHit(x, y)) {
+                hit = ship;
             }
-        } else {
-            reject('Already a move here');
         }
-    });
+        boardToCheck = boardToCheck.split('');
+        boardToCheck[squareToCheck] = (hit !== null) ? 'x' : 'o';
+        boardToCheck = boardToCheck.join('');
+        if (ai)
+            this.humanBoard = boardToCheck;
+        else
+            this.aiBoard = boardToCheck;
+        await this.save();
+        return hit;
+    } else {
+        throw new Error('Already a move here');
+    }
 };
 Match.prototype.checkWin = function(ai) {
     return new Promise((resolve, reject) => {
@@ -260,7 +263,8 @@ const Ship = sequelize.define('ship', {
         type: Sequelize.BOOLEAN
     },
     hits: {
-        type: Sequelize.INTEGER
+        type: Sequelize.INTEGER,
+        defaultValue: 0
     }
 });
 Ship.belongsTo(Match);
@@ -273,14 +277,15 @@ Ship.prototype.getSquares = function() {
             squares.push([this.x + i, this.y]);
     return squares;
 };
-Ship.prototype.checkHit = function(x, y) {
-    return new Promise((resolve, reject) => {
-        for (let square of this.getSquares())
-            if (square === [x, y]) {
-                this.hits.increment().then(() => resolve(true)).catch((error) => reject(error));
-            }
-        resolve(false);
-    });
+Ship.prototype.checkHit = async function(x, y) {
+    for (let [sX, sY] of this.getSquares()) {
+        if (sX === x && sY === y) {
+            await this.increment('hits', {by: 1});
+            await this.save();
+            return true;
+        }
+    }
+    return false;
 };
 Ship.prototype.checkSunk = function() {
     return this.length === this.hits;
