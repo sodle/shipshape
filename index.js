@@ -1,12 +1,12 @@
-import { Player, Match, Ship, syncDb } from './scripts/shipshape';
-import { getSquareCoordinates, placeShipRandomly, fry } from "./scripts/ai";
+import { Player, Match, Ship, Move, syncDb } from './scripts/shipshape';
+import { getSquareCoordinates, placeShipRandomly, fry, bender } from "./scripts/ai";
 import { Op } from 'sequelize';
 import clear from 'clear';
 import figlet from 'figlet';
 import inquirer from 'inquirer';
 
-const aiType = 'fry';
-const ai = fry;
+const aiType = 'bender';
+const ai = bender;
 
 async function printMyShips(match) {
     let ocean = match.humanBoard.match(/.{1,10}/g);
@@ -196,7 +196,7 @@ async function runCLI() {
             return;
         }
 
-        let [x, y] = ai(match.humanBoard);
+        let [x, y] = await ai(match);
         let hitShip = await match.makeMove(x, y, true);
         if (hitShip !== null) {
             if (hitShip.checkSunk()) {
