@@ -1,4 +1,4 @@
-import Sequelize, { Op } from 'sequelize';
+import Sequelize, { Op, DataTypes } from 'sequelize';
 
 const sequelize = new Sequelize('shipshape', null, null, {
     dialect: 'sqlite',
@@ -131,6 +131,28 @@ Match.prototype.getPlayerShips = function(ai) {
         }
     });
 };
+Match.prototype.listAiMoves = function() {
+    return Move.findAll({
+        include: [
+            {
+                model: Match,
+                where: {
+                    id: {
+                        [Op.eq]: Sequelize.col('Match.id')
+                    }
+                }
+            }
+        ],
+        where: {
+            ai: {
+                [Op.eq]: true
+            }
+        },
+        order: [
+            ['date', 'DESC']
+        ]
+    });
+};
 Match.prototype.getUnplacedShips = function(ai) {
     let ships = {
         Carrier: 5,
@@ -209,9 +231,16 @@ Match.prototype.makeMove = async function(x, y, ai) {
     let squareToCheck = getSquareIdx(x, y);
     if (boardToCheck[squareToCheck] === '.') {
         let hit = null;
+        let moveLog = Move.build({
+            x,
+            y,
+            ai,
+            matchId: this.id
+        });
         for (let ship of await this.getPlayerShips(!ai)) {
             if (await ship.checkHit(x, y)) {
                 hit = ship;
+                moveLog.shipId = ship.id;
             }
         }
         boardToCheck = boardToCheck.split('');
@@ -221,6 +250,7 @@ Match.prototype.makeMove = async function(x, y, ai) {
             this.humanBoard = boardToCheck;
         else
             this.aiBoard = boardToCheck;
+        await moveLog.save();
         await this.save();
         return hit;
     } else {
@@ -291,6 +321,24 @@ Ship.prototype.checkSunk = function() {
     return this.length === this.hits;
 };
 
+const Move = sequelize.define('move', {
+    x: {
+        type: Sequelize.INTEGER
+    },
+    y: {
+        type: Sequelize.INTEGER
+    },
+    date: {
+        type: Sequelize.DATE,
+        defaultValue: DataTypes.NOW
+    },
+    ai: {
+        type: Sequelize.BOOLEAN
+    }
+});
+Move.belongsTo(Match);
+Move.belongsTo(Ship);
+
 const syncDb = () => new Promise((resolve) => {
     Player.sync().then(() => {
         console.log('Player model create success');
@@ -298,7 +346,10 @@ const syncDb = () => new Promise((resolve) => {
             console.log('Match object create success');
             Ship.sync().then(() => {
                 console.log('Ship model create success');
-                resolve();
+                Move.sync().then(() => {
+                    console.log('Move model create success');
+                    resolve();
+                });
             });
         });
     });
