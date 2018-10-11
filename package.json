@@ -24,8 +24,6 @@
     "babel-preset-react": "^6.3.13",
     "babel-register": "^6.3.13",
     "babel-cli": "^6.26.0",
-    "babel-preset-es2017": "^6.24.1",
-    "electron": "^1.4.3",
-    "electron-rebuild": "^1.7.3"
+    "babel-preset-es2017": "^6.24.1"
   }
 }
