@@ -2,7 +2,7 @@
   "name": "shipshape",
   "version": "1.0.0",
   "main": "main.js",
-  "license": "MIT"
+  "license": "MIT",
   "scripts": {
     "start": "babel-node index.js"
   },
@@ -15,8 +15,9 @@
     "figlet": "^1.2.0",
     "inquirer": "^6.2.0",
     "minimist": "^1.2.0",
-    "sequelize": "^4.37.10",
-    "sqlite3": "^4.0.2"
+    "pg": "^7.5.0",
+    "pg-hstore": "^2.3.2",
+    "sequelize": "^4.37.10"
   },
   "devDependencies": {
     "babel-preset-env": "^1.7.0",

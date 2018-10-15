@@ -1,8 +1,8 @@
 import Sequelize, { Op, DataTypes } from 'sequelize';
 
-const sequelize = new Sequelize('shipshape', null, null, {
-    dialect: 'sqlite',
-    storage: './shipshape.sqlite3',
+const sequelize = new Sequelize('shipshape', process.env.SEQUELIZE_USER, process.env.SEQUELIZE_PASS, {
+    dialect: 'postgres',
+    host: process.env.SEQUELIZE_HOST,
     operatorsAliases: Op,
     logging: false
 });
