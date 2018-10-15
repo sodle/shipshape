@@ -22,7 +22,7 @@ Player.prototype.getAllMatches = function () {
                 model: Player,
                 where: {
                     id: {
-                        [Op.eq]: Sequelize.col('Player.id')
+                        [Op.eq]: Sequelize.col('player.id')
                     }
                 }
             }
@@ -36,7 +36,7 @@ Player.prototype.getActiveMatch = function () {
                 model: Player,
                 where: {
                     id: {
-                        [Op.eq]: Sequelize.col('Player.id')
+                        [Op.eq]: Sequelize.col('player.id')
                     }
                 }
             }
@@ -62,7 +62,7 @@ Player.prototype.getMatchHistory = function () {
                 model: Player,
                 where: {
                     id: {
-                        [Op.eq]: Sequelize.col('Player.id')
+                        [Op.eq]: Sequelize.col('player.id')
                     }
                 }
             }
@@ -119,7 +119,7 @@ Match.prototype.getPlayerShips = function(ai) {
                 model: Match,
                 where: {
                     id: {
-                        [Op.eq]: Sequelize.col('Match.id')
+                        [Op.eq]: Sequelize.col('match.id')
                     }
                 }
             }
@@ -138,7 +138,7 @@ Match.prototype.listAiMoves = function() {
                 model: Match,
                 where: {
                     id: {
-                        [Op.eq]: Sequelize.col('Match.id')
+                        [Op.eq]: Sequelize.col('match.id')
                     }
                 }
             }
